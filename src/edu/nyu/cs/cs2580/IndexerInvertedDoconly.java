@@ -1,13 +1,36 @@
 package edu.nyu.cs.cs2580;
 
-import java.io.IOException;
+import java.io.*;
+import java.util.*;
 
 import edu.nyu.cs.cs2580.SearchEngine.Options;
 
 /**
  * @CS2580: Implement this class for HW2.
  */
-public class IndexerInvertedDoconly extends Indexer {
+public class IndexerInvertedDoconly extends Indexer implements Serializable {
+
+  // Maps each term to their integer representation
+  private Map<String, Integer> _dictionary = new HashMap<String, Integer>();
+  // All unique terms appeared in corpus. Offsets are integer representations.
+  private Vector<String> _terms = new Vector<String>();
+
+  // Term document frequency, key is the integer representation of the term and
+  // value is the number of documents the term appears in.
+  private Map<Integer, Integer> _termDocFrequency =
+          new HashMap<Integer, Integer>();
+  // Term frequency, key is the integer representation of the term and value is
+  // the number of times the term appears in the corpus.
+  private Map<Integer, Integer> _termCorpusFrequency =
+          new HashMap<Integer, Integer>();
+
+  // Stores all Document in memory.
+  private Vector<Document> _documents = new Vector<Document>();
+
+  private Map<Integer, Set<Integer>> _postings = new HashMap<>();
+
+  public IndexerInvertedDoconly() {
+  }
 
   public IndexerInvertedDoconly(Options options) {
     super(options);
@@ -16,6 +39,60 @@ public class IndexerInvertedDoconly extends Indexer {
 
   @Override
   public void constructIndex() throws IOException {
+
+    String dir = "./data/wiki/";
+    File[] fileNames = new File(dir).listFiles();
+    System.out.println("Construct index from: " + dir);
+
+    HTMLParse htmlParse = new HTMLParse();
+    int i = 0;
+    for (File fileName : fileNames) {
+      i++;
+      HTMLDocument htmlDocument = htmlParse.getDocument(fileName);
+      DocumentIndexed doc = new DocumentIndexed(_documents.size());
+
+      processLine(htmlDocument.getBodyText(), doc);
+
+      doc.setTitle(htmlDocument.getTitle());
+      _documents.add(doc);
+      ++_numDocs;
+//      if (i == 1000) break;
+//      System.out.println(
+//              "Indexed " + Integer.toString(_numDocs) + " docs with " +
+//                      Long.toString(_totalTermFrequency) + " terms.");
+//
+//      String indexFile = _options._indexPrefix + "/corpus.idx";
+//      System.out.println("Store index to: " + indexFile);
+//      ObjectOutputStream writer =
+//              new ObjectOutputStream(new FileOutputStream(indexFile));
+//      writer.writeObject(this);
+//      writer.close();
+    }
+
+    System.out.println("test");
+  }
+
+  private void processLine(String content, DocumentIndexed doc) {
+    Scanner s = new Scanner(content);
+
+    while (s.hasNext()) {
+      String token = s.next();
+      int idx;
+      if (_dictionary.containsKey(token)) {
+        idx = _dictionary.get(token);
+        _postings.get(idx).add(doc._docid);
+      } else {
+        idx = _terms.size();
+        _terms.add(token);
+        _dictionary.put(token, idx);
+        _termCorpusFrequency.put(idx, 0);
+        _termDocFrequency.put(idx, 0);
+        LinkedHashSet<Integer> docIds = new LinkedHashSet<>();
+        docIds.add(doc._docid);
+        _postings.put(idx, docIds);
+      }
+    }
+    s.close();
   }
 
   @Override
