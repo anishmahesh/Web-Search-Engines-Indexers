@@ -6,10 +6,12 @@ package edu.nyu.cs.cs2580;
 public class HTMLDocument {
     private String bodyText;
     private String title;
+    private String url;
 
-    public HTMLDocument(String bodyText,String title){
+    public HTMLDocument(String bodyText,String title,String url){
         this.bodyText = bodyText;
         this.title = title;
+        this.url = url;
     }
 
     public String getBodyText(){
@@ -26,6 +28,14 @@ public class HTMLDocument {
 
     public void setTitle(String title){
         this.title = title;
+    }
+
+    public String getUrl() {
+        return this.url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
 }

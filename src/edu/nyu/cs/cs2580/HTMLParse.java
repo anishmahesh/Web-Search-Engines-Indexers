@@ -1,5 +1,6 @@
 package edu.nyu.cs.cs2580;
 
+import com.sun.javafx.binding.StringFormatter;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 
@@ -18,7 +19,8 @@ public class HTMLParse {
         doc.title().replaceFirst("- Wikipedia, the free encyclopedia","");
         String bodyText = new String(body.text().toLowerCase());
         String title = doc.title();
-        HTMLDocument htmlDoc = new HTMLDocument(bodyText,title);
+        String url = fileName.getName();
+        HTMLDocument htmlDoc = new HTMLDocument(bodyText,title,url);
         return htmlDoc;
     }
 }
