@@ -21,7 +21,7 @@ public class HTMLParse {
         String bodyText = new String(body.text().toLowerCase());
         //bodyText.replaceAll("\\p{P}", " ");
         String title = doc.title();
-        _currentDocument = new HTMLDocument(bodyText,title);
+        _currentDocument = new HTMLDocument(bodyText,title,fileName.getAbsolutePath());
         stemBodyText();
         return _currentDocument;
     }
