@@ -4,10 +4,6 @@ import java.io.*;
 import java.util.*;
 
 import edu.nyu.cs.cs2580.SearchEngine.Options;
-import javafx.geometry.Pos;
-import sun.misc.PostVMInitHook;
-
-import javax.annotation.PostConstruct;
 
 /**
  * @CS2580: Implement this class for HW2.
@@ -117,7 +113,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
    */
   @Override
   public Document nextDoc(Query query, int docid) {
-    int size = query._tokens.size();
     List<Integer> idArray = new ArrayList<>();
     int maxId = -1;
     int sameDocId = -1;
