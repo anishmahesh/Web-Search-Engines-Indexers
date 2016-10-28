@@ -150,7 +150,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
   private int binarySearchResultIndex(String term, int current){
       Vector <Integer> PostingList = getPostingListOfTerm(term);
-      int lt = PostingList.get(PostingList.size()-1);
+      int lt = PostingList.size()-1;
       if(lt == 0 || PostingList.get(lt) <= current){
           return -1;
       }
