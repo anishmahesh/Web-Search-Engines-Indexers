@@ -4,6 +4,10 @@ import java.io.*;
 import java.util.*;
 
 import edu.nyu.cs.cs2580.SearchEngine.Options;
+import javafx.geometry.Pos;
+import sun.misc.PostVMInitHook;
+
+import javax.annotation.PostConstruct;
 
 /**
  * @CS2580: Implement this class for HW2.
@@ -113,7 +117,65 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
    */
   @Override
   public Document nextDoc(Query query, int docid) {
-    return null;
+    int size = query._tokens.size();
+    List<Integer> idArray = new ArrayList<>();
+    int maxId = -1;
+    int sameDocId = -1;
+    boolean allQueryTermsInSameDoc = true;
+    for(String term : query._tokens){
+      idArray.add(next(term,docid));
+    }
+    for(int id : idArray){
+      if(id == -1){
+        return null;
+      }
+      if(sameDocId == -1){
+        sameDocId = id;
+      }
+      if(id != sameDocId){
+        allQueryTermsInSameDoc = false;
+      }
+      if(id > maxId){
+        maxId = id;
+      }
+      if(allQueryTermsInSameDoc){
+        return _documents.get(sameDocId);
+      }
+    }
+    return nextDoc(query, maxId-1);
+  }
+
+  public int next(String queryTerm, int docid){
+    return binarySearchResultIndex(queryTerm, docid);
+  }
+
+  private Vector<Integer> getPostingListOfTerm(String term){
+        return _postings.get(_dictionary.get(term));
+  }
+
+  private int binarySearchResultIndex(String term, int current){
+      Vector <Integer> PostingList = getPostingListOfTerm(term);
+      int lt = PostingList.get(PostingList.size()-1);
+      if(lt == 0 || PostingList.get(lt) <= current){
+          return -1;
+      }
+      if(PostingList.get(1)>current){
+          return PostingList.get(1);
+      }
+      return PostingList.get(binarySearch(PostingList,1,lt,current));
+  }
+
+  private int binarySearch(Vector<Integer> PostingList, int low, int high, int current){
+    int mid;
+    while(high - low > 1) {
+      mid = (low + high) / 2;
+      if (PostingList.get(mid) <= current) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return high;
   }
 
   @Override
