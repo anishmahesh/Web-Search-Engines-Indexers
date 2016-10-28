@@ -27,7 +27,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
   // Stores all Document in memory.
   private Vector<Document> _documents = new Vector<Document>();
 
-  private Map<Integer, Set<Integer>> _postings = new HashMap<>();
+  private Map<Integer, Vector<Integer>> _postings = new HashMap<>();
 
   public IndexerInvertedDoconly() {
   }
@@ -57,17 +57,17 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
       _documents.add(doc);
       ++_numDocs;
 //      if (i == 1000) break;
-//      System.out.println(
-//              "Indexed " + Integer.toString(_numDocs) + " docs with " +
-//                      Long.toString(_totalTermFrequency) + " terms.");
-//
-//      String indexFile = _options._indexPrefix + "/corpus.idx";
-//      System.out.println("Store index to: " + indexFile);
-//      ObjectOutputStream writer =
-//              new ObjectOutputStream(new FileOutputStream(indexFile));
-//      writer.writeObject(this);
-//      writer.close();
     }
+    System.out.println(
+            "Indexed " + Integer.toString(_numDocs) + " docs with " +
+                    Long.toString(_totalTermFrequency) + " terms.");
+
+    String indexFile = _options._indexPrefix + "/corpus.idx";
+    System.out.println("Store index to: " + indexFile);
+    ObjectOutputStream writer =
+            new ObjectOutputStream(new FileOutputStream(indexFile));
+    writer.writeObject(this);
+    writer.close();
 
     System.out.println("test");
   }
@@ -87,7 +87,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
         _dictionary.put(token, idx);
         _termCorpusFrequency.put(idx, 0);
         _termDocFrequency.put(idx, 0);
-        LinkedHashSet<Integer> docIds = new LinkedHashSet<>();
+        Vector<Integer> docIds = new Vector<>();
         docIds.add(doc._docid);
         _postings.put(idx, docIds);
       }
