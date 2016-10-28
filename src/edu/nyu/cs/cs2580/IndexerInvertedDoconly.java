@@ -60,7 +60,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     }
     System.out.println(
             "Indexed " + Integer.toString(_numDocs) + " docs with " +
-                    Long.toString(_totalTermFrequency) + " terms.");
+                    Long.toString(_terms.size()) + " terms.");
 
     String indexFile = _options._indexPrefix + "/corpus.idx";
     System.out.println("Store index to: " + indexFile);
@@ -75,8 +75,12 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
   private void processLine(String content, DocumentIndexed doc) {
     Scanner s = new Scanner(content);
 
+    Set<String> uniqueTermsInDoc = new HashSet<>();
     while (s.hasNext()) {
-      String token = s.next();
+      uniqueTermsInDoc.add(s.next());
+    }
+
+    for (String token : uniqueTermsInDoc) {
       int idx;
       if (_dictionary.containsKey(token)) {
         idx = _dictionary.get(token);
@@ -85,12 +89,11 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
         idx = _terms.size();
         _terms.add(token);
         _dictionary.put(token, idx);
-        _termCorpusFrequency.put(idx, 0);
-        _termDocFrequency.put(idx, 0);
         Vector<Integer> docIds = new Vector<>();
         docIds.add(doc._docid);
         _postings.put(idx, docIds);
       }
+
     }
     s.close();
   }
