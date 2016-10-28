@@ -51,7 +51,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
       HTMLDocument htmlDocument = htmlParse.getDocument(fileName);
       DocumentIndexed doc = new DocumentIndexed(_documents.size());
 
-      processLine(htmlDocument.getBodyText(), doc);
+      processDocument(htmlDocument.getBodyText(), doc);
 
       doc.setTitle(htmlDocument.getTitle());
       doc.setUrl(htmlDocument.getUrl());
@@ -73,7 +73,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     System.out.println("test");
   }
 
-  private void processLine(String content, DocumentIndexed doc) {
+  private void processDocument(String content, DocumentIndexed doc) {
     Scanner s = new Scanner(content);
 
     Set<String> uniqueTermsInDoc = new HashSet<>();
