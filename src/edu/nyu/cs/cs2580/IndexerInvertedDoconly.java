@@ -54,6 +54,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
       processLine(htmlDocument.getBodyText(), doc);
 
       doc.setTitle(htmlDocument.getTitle());
+      doc.setUrl(htmlDocument.getUrl());
       _documents.add(doc);
       ++_numDocs;
 //      if (i == 1000) break;
