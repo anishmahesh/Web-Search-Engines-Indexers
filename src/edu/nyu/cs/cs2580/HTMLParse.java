@@ -9,41 +9,28 @@ import java.io.IOException;
 /**
  * Created by sanchitmehta on 26/10/16.
  */
-
 public class HTMLParse {
 
-    private String _bodyText;
-    private String _title;
-    private static final String[] removalRegex= {"\\p{P}", "(http://)|(https://)[^\\s]*[\\s]"};
+    HTMLDocument _currentDocument;
 
     public HTMLDocument getDocument(File fileName) throws IOException {
 
         org.jsoup.nodes.Document doc = Jsoup.parse(fileName, "UTF-8", "https://en.wikipedia.org/wiki/Courant_Institute_of_Mathematical_Sciences");
         Element body = doc.body();
         doc.title().replaceFirst("- Wikipedia, the free encyclopedia","");
-        _bodyText = new String(body.text().toLowerCase());
-        _title = doc.title();
-
-        //processing html doc data
+        String bodyText = new String(body.text().toLowerCase());
+        bodyText = bodyText.replaceAll("\\p{P}", " ");
+        String title = doc.title();
+        _currentDocument = new HTMLDocument(bodyText,title,fileName.getAbsolutePath());
         stemBodyText();
-        processBodyText();
-
-
-        HTMLDocument _htmlDocument = new HTMLDocument(_bodyText.toString(),_title.toString(),fileName.getAbsolutePath());
-        return _htmlDocument;
+        return _currentDocument;
     }
 
-    private void stemBodyText(){
+    public void stemBodyText(){
         Stemmer s = new Stemmer();
-        s.add(_bodyText.toCharArray(), _bodyText.length());
+        s.add(_currentDocument.getBodyText().toCharArray(), _currentDocument.getBodyText().length());
         s.stem();
-        _bodyText = s.toString();
-    }
-
-    private void processBodyText(){
-        for(String regex:removalRegex){
-            _bodyText = _bodyText.replaceAll(regex,"");
-        }
+        _currentDocument.setBodyText(s.toString());
     }
 
 
