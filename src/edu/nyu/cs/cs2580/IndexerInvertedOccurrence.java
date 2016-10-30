@@ -85,8 +85,6 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
     }
 
-//    indexCount = 20;
-
     System.out.println("Created partial indexes. Now merging them");
 
     mergeIndex();
@@ -99,14 +97,15 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
             "Indexed " + Integer.toString(_numDocs) + " docs with " +
                     Long.toString(_terms.size()) + " terms.");
 
-//    String indexFile = _options._indexPrefix + "/corpus.idx";
-//    System.out.println("Store index to: " + indexFile);
-//    ObjectOutputStream writer =
-//            new ObjectOutputStream(new FileOutputStream(indexFile));
-//    writer.writeObject(this);
-//    writer.close();
-//
-//    System.out.println("test");
+    _postings = null;
+
+    String indexFile = _options._indexPrefix + "/objects.idx";
+    System.out.println("Store other objects to: " + indexFile);
+    ObjectOutputStream writer =
+            new ObjectOutputStream(new FileOutputStream(indexFile));
+    writer.writeObject(this);
+    writer.close();
+
   }
 
   private void splitIndexFile() throws IOException {
@@ -297,6 +296,23 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   @Override
   public void loadIndex() throws IOException, ClassNotFoundException {
+    String indexFile = _options._indexPrefix + "/objects.idx";
+    System.out.println("Loading index objects other than postings list from: " + indexFile);
+
+    ObjectInputStream reader =
+            new ObjectInputStream(new FileInputStream(indexFile));
+    IndexerInvertedOccurrence loaded = (IndexerInvertedOccurrence) reader.readObject();
+
+    this._skipList = loaded._skipList;
+    // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
+    this._numDocs = _documents.size();
+
+    this._dictionary = loaded._dictionary;
+    this._terms = loaded._terms;
+    this._termCorpusFrequency = loaded._termCorpusFrequency;
+    this._termDocFrequency = loaded._termDocFrequency;
+    this._documents = loaded._documents;
+    reader.close();
   }
 
   @Override
@@ -309,6 +325,21 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
    */
   @Override
   public Document nextDoc(Query query, int docid) {
+
+      System.out.println("loading individual indexes");
+      for(String token:query._tokens){
+        if(!_postings.containsKey(token)){
+          try {
+            loadIndexOnFlyForTerm(token);
+          } catch (IOException e) {
+            e.printStackTrace();
+          } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    System.out.println("mini indexes loaded");
+
       if(query instanceof QueryPhrase){
           return nextDocPhrase(query, docid);
       } else {
@@ -425,12 +456,9 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     return 1;
   }
 
-  int noOfFiles=500;
-
-
   public void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
     int termId = _dictionary.get(term);
-    loadMiniIndex((int)(termId/noOfFiles));
+    loadMiniIndex((int)(termId/TERM_COUNT_FOR_INDEX_SPLIT));
   }
 
   private void loadMiniIndex(int indexNo)throws FileNotFoundException{
@@ -439,7 +467,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     File[] indexFiles= idxFolder.listFiles();
 
     if(indexNo < indexFiles.length) {
-      StringBuilder fileName = new StringBuilder(_options._indexPrefix).append("index-part-").append(indexNo);
+      StringBuilder fileName = new StringBuilder(_options._indexPrefix).append("index-part-").append(indexNo).append(".tsv");
 
       FileInputStream in = new FileInputStream(fileName.toString());
       BufferedReader br = new BufferedReader(new InputStreamReader(in));
