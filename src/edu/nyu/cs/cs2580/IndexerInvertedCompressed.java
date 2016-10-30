@@ -163,38 +163,50 @@ public class IndexerInvertedCompressed extends Indexer {
    */
   @Override
   public Document nextDoc(Query query, int docid) {
-    List<Integer> idArray = new ArrayList<>();
-    int maxId = -1;
-    int sameDocId = -1;
-    boolean allQueryTermsInSameDoc = true;
-    if( queryObject != query){
-      queryObject = query;
-      _decodedPostings.clear();
-    }
-    for(String term : query._tokens){
-      if(!_decodedPostings.containsKey(_dictionary.get(term))){
-        _decodedPostings.put(_dictionary.get(term), getPostingListforTerm(term));
+      if(query instanceof QueryPhrase){
+          return nextDocPhrase(query, docid);
+      } else {
+          return nextDocIndividualTokens(query, docid);
       }
-      idArray.add(next(term,docid));
-    }
-    for(int id : idArray){
-      if(id == -1){
-        return null;
+  }
+
+  public Document nextDocIndividualTokens(Query query, int docid){
+      List<Integer> idArray = new ArrayList<>();
+      int maxId = -1;
+      int sameDocId = -1;
+      boolean allQueryTermsInSameDoc = true;
+      if( queryObject != query){
+          queryObject = query;
+          _decodedPostings.clear();
       }
-      if(sameDocId == -1){
-        sameDocId = id;
+      for(String term : query._tokens){
+          if(!_decodedPostings.containsKey(_dictionary.get(term))){
+              _decodedPostings.put(_dictionary.get(term), getPostingListforTerm(term));
+          }
+          idArray.add(next(term,docid));
       }
-      if(id != sameDocId){
-        allQueryTermsInSameDoc = false;
+      for(int id : idArray){
+          if(id == -1){
+              return null;
+          }
+          if(sameDocId == -1){
+              sameDocId = id;
+          }
+          if(id != sameDocId){
+              allQueryTermsInSameDoc = false;
+          }
+          if(id > maxId){
+              maxId = id;
+          }
+          if(allQueryTermsInSameDoc){
+              return _documents.get(sameDocId);
+          }
       }
-      if(id > maxId){
-        maxId = id;
-      }
-      if(allQueryTermsInSameDoc){
-        return _documents.get(sameDocId);
-      }
-    }
-    return nextDoc(query, maxId-1);
+      return nextDoc(query, maxId-1);
+  }
+
+  public Document nextDocPhrase(Query query, int docid){
+      return null;
   }
 
   public int next(String queryTerm, int docid){

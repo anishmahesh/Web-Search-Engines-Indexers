@@ -140,31 +140,43 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
    */
   @Override
   public Document nextDoc(Query query, int docid) {
-    List<Integer> idArray = new ArrayList<>();
-    int maxId = -1;
-    int sameDocId = -1;
-    boolean allQueryTermsInSameDoc = true;
-    for(String term : query._tokens){
-      idArray.add(next(term,docid));
-    }
-    for(int id : idArray){
-      if(id == -1){
-        return null;
+      if(query instanceof QueryPhrase){
+          return nextDocPhrase(query, docid);
+      } else {
+          return nextDocIndividualTokens(query, docid);
       }
-      if(sameDocId == -1){
-        sameDocId = id;
-      }
-      if(id != sameDocId){
-        allQueryTermsInSameDoc = false;
-      }
-      if(id > maxId){
-        maxId = id;
-      }
-      if(allQueryTermsInSameDoc){
-        return _documents.get(sameDocId);
-      }
-    }
-    return nextDoc(query, maxId-1);
+  }
+
+  public Document nextDocIndividualTokens(Query query, int docid) {
+        List<Integer> idArray = new ArrayList<>();
+        int maxId = -1;
+        int sameDocId = -1;
+        boolean allQueryTermsInSameDoc = true;
+        for(String term : query._tokens){
+            idArray.add(next(term,docid));
+        }
+        for(int id : idArray){
+            if(id == -1){
+                return null;
+            }
+            if(sameDocId == -1){
+                sameDocId = id;
+            }
+            if(id != sameDocId){
+                allQueryTermsInSameDoc = false;
+            }
+            if(id > maxId){
+                maxId = id;
+            }
+            if(allQueryTermsInSameDoc){
+                return _documents.get(sameDocId);
+            }
+        }
+      return nextDoc(query, maxId-1);
+  }
+
+  public Document nextDocPhrase(Query query, int docid){
+      return null;
   }
 
   public int next(String queryTerm, int docid){
