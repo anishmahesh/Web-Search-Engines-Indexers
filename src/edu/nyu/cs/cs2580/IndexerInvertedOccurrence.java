@@ -63,6 +63,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
       doc.setTitle(htmlDocument.getTitle());
       doc.setUrl(htmlDocument.getUrl());
+      doc.setDocTermFrequency(1);
       _documents.add(doc);
       ++_numDocs;
 //      if (i == 10) break;

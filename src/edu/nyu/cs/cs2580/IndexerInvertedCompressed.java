@@ -86,6 +86,7 @@ public class IndexerInvertedCompressed extends Indexer {
 
         doc.setTitle(htmlDocument.getTitle());
         doc.setUrl(htmlDocument.getUrl());
+        doc.setDocTermFrequency(1);
         _documents.add(doc);
         ++_numDocs;
       }else if(file.isDirectory()){
