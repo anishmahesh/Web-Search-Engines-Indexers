@@ -34,8 +34,12 @@ public class IndexerInvertedCompressed extends Indexer {
 
   private Map<Integer, Vector<Byte>> _postings = new HashMap<>();
 
+  private Map<Integer, Vector<Integer>> _decodedPostings = new HashMap<>();
+
   //Stores the index of each docid in posting list in sorted order(acc to doc ids)
   private Map<Integer,Vector<Integer>> _skipList = new HashMap<>();
+
+  private Query queryObject = null;
 
 
   public IndexerInvertedCompressed(Options options) {
@@ -162,7 +166,14 @@ public class IndexerInvertedCompressed extends Indexer {
     int maxId = -1;
     int sameDocId = -1;
     boolean allQueryTermsInSameDoc = true;
+    if( queryObject != query){
+      queryObject = query;
+      _decodedPostings.clear();
+    }
     for(String term : query._tokens){
+      if(!_decodedPostings.containsKey(_dictionary.get(term))){
+        _decodedPostings.put(_dictionary.get(term), getPostingListforTerm(term));
+      }
       idArray.add(next(term,docid));
     }
     for(int id : idArray){
@@ -193,13 +204,17 @@ public class IndexerInvertedCompressed extends Indexer {
     return IndexCompressor.vByteDecoder(_postings.get(_dictionary.get(term)));
   }
 
+  public Vector<Integer> getDecodedPostingListforTerm(String term){
+    return _decodedPostings.get(_dictionary.get(term));
+  }
+
   public Vector<Integer> getSkipListforTerm(String term){
     return _skipList.get(_dictionary.get(term));
   }
 
   private int binarySearchResultIndex(String term, int current){
-    Vector<Integer> PostingList = getPostingListforTerm(term);
-    Vector<Integer> SkipList = _skipList.get(term);
+    Vector<Integer> PostingList = getDecodedPostingListforTerm(term);
+    Vector<Integer> SkipList = getSkipListforTerm(term);
     int lt = SkipList.size()-1;
     if(lt == 0 || PostingList.get(SkipList.get(lt)) <= current){
       return -1;
