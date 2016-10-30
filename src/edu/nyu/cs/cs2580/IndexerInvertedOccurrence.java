@@ -30,6 +30,9 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   private Map<Integer, Vector<Integer>> _postings = new HashMap<>();
 
+  //Stores the index of each docid in posting list in sorted order(acc to doc ids)
+  private Map<Integer,Vector<Integer>> _skipList = new HashMap<>();
+
   public IndexerInvertedOccurrence() {
   }
 
@@ -171,29 +174,34 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     return _postings.get(_dictionary.get(term));
   }
 
+  public Vector<Integer> getSkipListforTerm(String term){
+    return _skipList.get(_dictionary.get(term));
+  }
+
   private int binarySearchResultIndex(String term, int current){
     Vector <Integer> PostingList = getPostingListforTerm(term);
-    int lt = PostingList.size()-1;
-    if(lt == 0 || PostingList.get(lt) <= current){
+    Vector <Integer> SkipList = getSkipListforTerm(term);
+    int lt = SkipList.size()-1;
+    if(lt == 0 || PostingList.get(SkipList.get(lt)) <= current){
       return -1;
     }
     if(PostingList.get(1)>current){
       return PostingList.get(1);
     }
-    return PostingList.get(binarySearch(PostingList,1,lt,current));
+    return PostingList.get(binarySearch(PostingList,SkipList,1,lt,current));
   }
 
-  private int binarySearch(Vector<Integer> PostingList, int low, int high, int current){
+  private int binarySearch(Vector<Integer> PostingList, Vector<Integer> SkipList, int low, int high, int current){
     int mid;
     while(high - low > 1) {
       mid = (low + high) / 2;
-      if (PostingList.get(mid) <= current) {
+      if (PostingList.get(SkipList.get(mid)) <= current) {
         low = mid;
       } else {
         high = mid;
       }
     }
-    return high;
+    return SkipList.get(high);
   }
 
   @Override

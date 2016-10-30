@@ -174,43 +174,59 @@ public class IndexerInvertedCompressed extends Indexer {
     return binarySearchResultIndex(queryTerm, docid);
   }
 
-  public Vector<Byte> getPostingListforTerm(String term){
-    return _postings.get(_dictionary.get(term));
+  public Vector<Integer> getPostingListforTerm(String term){
+    return IndexCompressor.vByteDecoder(_postings.get(_dictionary.get(term)));
+  }
+
+  public Vector<Integer> getSkipListforTerm(String term){
+    return _skipList.get(_dictionary.get(term));
   }
 
   private int binarySearchResultIndex(String term, int current){
-    Vector<Integer> PostingList = IndexCompressor.vByteDecoder(getPostingListforTerm(term));
-    int lt = PostingList.size()-1;
-    if(lt == 0 || PostingList.get(_skipList.get(term).get(lt)) <= current){
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    Vector<Integer> SkipList = _skipList.get(term);
+    int lt = SkipList.size()-1;
+    if(lt == 0 || PostingList.get(SkipList.get(lt)) <= current){
       return -1;
     }
     if(PostingList.get(1)>current){
       return PostingList.get(1);
     }
-    return PostingList.get(binarySearch(PostingList,1,lt,current,term));
+    return PostingList.get(binarySearch(PostingList,SkipList,1,lt,current,term));
   }
 
-  private int binarySearch(Vector<Integer> PostingList, int low, int high, int current,String term){
+  private int binarySearch(Vector<Integer> PostingList, Vector<Integer> SkipList, int low, int high, int current,String term){
     int mid;
     while(high - low > 1) {
       mid = (low + high) / 2;
-      if (PostingList.get(_skipList.get(term).get(mid)) <= current) {
+      if (PostingList.get(SkipList.get(mid)) <= current) {
         low = mid;
       } else {
         high = mid;
       }
     }
-    return high;
+    return SkipList.get(high);
   }
 
-  @Override
   public int corpusDocFrequencyByTerm(String term) {
-    return 0;
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    int corpusDocFrequencyByTerm = 0;
+    for(int i=0; i< PostingList.size()-1;){
+      corpusDocFrequencyByTerm++;
+      i += PostingList.get(i+1) + 2;
+    }
+    return corpusDocFrequencyByTerm;
   }
 
   @Override
   public int corpusTermFrequency(String term) {
-    return 0;
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    int corpusTermFrequency = 0;
+    for(int i=0; i< PostingList.size()-1;){
+      corpusTermFrequency += PostingList.get(i+1);
+      i += PostingList.get(i+1) + 2;
+    }
+    return corpusTermFrequency;
   }
 
   /**
@@ -218,6 +234,14 @@ public class IndexerInvertedCompressed extends Indexer {
    */
   @Override
   public int documentTermFrequency(String term, int docid) {
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    for(int i=0; i< PostingList.size()-1;){
+      if(docid == PostingList.get(i)){
+        return  PostingList.get(i+1);
+      } else {
+        i += PostingList.get(i+1) + 2;
+      }
+    }
     return 0;
   }
 }
