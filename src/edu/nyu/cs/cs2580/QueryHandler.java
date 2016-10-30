@@ -153,13 +153,22 @@ class QueryHandler implements HttpHandler {
           "Ranker " + cgiArgs._rankerType.toString() + " is not valid!");
     }
 
+    Vector<ScoredDocument> scoredDocs = null;
     // Processing the query.
-    Query processedQuery = new Query(cgiArgs._query);
-    processedQuery.processQuery();
+    if(cgiArgs._query.matches("([\"'])(?:(?=(\\\\?))\\2.)*?\\1")){
+      QueryPhrase processedQuery = new QueryPhrase(cgiArgs._query);
+        processedQuery.processQuery();
+        scoredDocs =
+                ranker.runQuery(processedQuery, cgiArgs._numResults);
+    } else {
+      Query processedQuery = new Query(cgiArgs._query);
+        processedQuery.processQuery();
+        scoredDocs =
+                ranker.runQuery(processedQuery, cgiArgs._numResults);
+    }
+
 
     // Ranking.
-    Vector<ScoredDocument> scoredDocs =
-        ranker.runQuery(processedQuery, cgiArgs._numResults);
     StringBuffer response = new StringBuffer();
     switch (cgiArgs._outputFormat) {
     case TEXT:
