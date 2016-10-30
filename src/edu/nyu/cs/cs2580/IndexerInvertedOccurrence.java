@@ -15,7 +15,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   private static int TERM_COUNT_FOR_INDEX_SPLIT = 500;
 
-  int indexCount = 0;
+  private int indexCount = 0;
 
   // Maps each term to their integer representation
   private Map<String, Integer> _dictionary = new HashMap<String, Integer>();
@@ -49,41 +49,12 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   @Override
   public void constructIndex() throws IOException {
-    String dir = "./data/wiki/";
-    File[] fileNames = new File(dir).listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        return !name.equals(".DS_Store");
-      }
-    });
-    System.out.println("Construct index from: " + dir);
+    String corpusDir = _options._corpusPrefix;
+    String indexDir  = _options._indexPrefix;
 
-    HTMLParse htmlParse = new HTMLParse();
-    int fileNum = 0;
-    for (File fileName : fileNames) {
-      HTMLDocument htmlDocument = htmlParse.getDocument(fileName);
-      DocumentIndexed doc = new DocumentIndexed(_documents.size());
+    deleteExistingFile(indexDir);
 
-//      System.out.println(fileName.getName());
-      processDocument(htmlDocument.getBodyText(), doc);
-
-      doc.setTitle(htmlDocument.getTitle());
-      doc.setUrl(htmlDocument.getUrl());
-      doc.setDocTermFrequency(1);
-      _documents.add(doc);
-      ++_numDocs;
-
-      if (fileNum == FILE_COUNT_FOR_INDEX_SPLIT) {
-        indexCount++;
-        System.out.println("Constructing partial index number: " + indexCount);
-
-        persistToFile(indexCount);
-        fileNum = 0;
-      }
-
-      fileNum++;
-
-    }
+    processFiles(corpusDir);
 
     System.out.println("Created partial indexes. Now merging them");
 
@@ -99,13 +70,61 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
     _postings = null;
 
+    writeIndexerObjectToFile();
+
+  }
+
+  private void writeIndexerObjectToFile() throws IOException {
     String indexFile = _options._indexPrefix + "/objects.idx";
     System.out.println("Store other objects to: " + indexFile);
     ObjectOutputStream writer =
             new ObjectOutputStream(new FileOutputStream(indexFile));
     writer.writeObject(this);
     writer.close();
+  }
 
+  private void deleteExistingFile(String indexDir) {
+    for(File file: new File(indexDir).listFiles())
+      file.delete();
+  }
+
+  private void processFiles(String dir) throws IOException {
+    File[] fileNames = new File(dir).listFiles();
+    HTMLParse htmlParse = new HTMLParse();
+    int fileNum = 0;
+    for (File file : fileNames) {
+
+      if(file.isFile() && !file.isHidden()) {
+        HTMLDocument htmlDocument = htmlParse.getDocument(file);
+        DocumentIndexed doc = new DocumentIndexed(_documents.size());
+
+        processDocument(htmlDocument.getBodyText(), doc);
+
+        doc.setTitle(htmlDocument.getTitle());
+        doc.setUrl(htmlDocument.getUrl());
+        doc.setDocTermFrequency(1);
+        _documents.add(doc);
+        ++_numDocs;
+
+        if (fileNum == FILE_COUNT_FOR_INDEX_SPLIT) {
+          indexCount++;
+          System.out.println("Constructing partial index number: " + indexCount);
+
+          persistToFile(indexCount);
+          fileNum = 0;
+        }
+
+        fileNum++;
+      }else if(file.isDirectory()){
+        //not recursively going inside a directory
+        continue;
+        //processFiles(dir+file.getName());
+      }
+    }
+
+    indexCount++;
+    System.out.println("Constructing partial index number: " + indexCount);
+    persistToFile(indexCount);
   }
 
   private void splitIndexFile() throws IOException {
@@ -458,7 +477,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   public void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
     int termId = _dictionary.get(term);
-    loadMiniIndex((int)(termId/TERM_COUNT_FOR_INDEX_SPLIT));
+    loadMiniIndex(termId/TERM_COUNT_FOR_INDEX_SPLIT);
   }
 
   private void loadMiniIndex(int indexNo)throws FileNotFoundException{
