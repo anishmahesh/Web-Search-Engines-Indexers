@@ -49,20 +49,8 @@ public class IndexerInvertedCompressed extends Indexer {
     File[] fileNames = new File(dir).listFiles();
     System.out.println("Construct index from: " + dir);
 
-    HTMLParse htmlParse = new HTMLParse();
-    int i = 0;
-    for (File fileName : fileNames) {
-      i++;
-      HTMLDocument htmlDocument = htmlParse.getDocument(fileName);
-      DocumentIndexed doc = new DocumentIndexed(_documents.size());
+    processFiles(dir);
 
-      processDocument(htmlDocument.getBodyText(), doc);
-
-      doc.setTitle(htmlDocument.getTitle());
-      doc.setUrl(htmlDocument.getUrl());
-      _documents.add(doc);
-      ++_numDocs;
-    }
     System.out.println(
             "Indexed " + Integer.toString(_numDocs) + " docs with " +
                     Long.toString(_terms.size()) + " terms.");
@@ -75,6 +63,33 @@ public class IndexerInvertedCompressed extends Indexer {
     writer.close();
 
     System.out.println("test");
+  }
+
+  private void processFiles(String dir) throws IOException {
+    System.out.println("Inside Directory : "+dir);
+    File[] fileNames = new File(dir).listFiles();
+    System.out.println("Construct index from: " + dir);
+    HTMLParse htmlParse = new HTMLParse();
+    System.out.println("File List : "+fileNames);
+    int i=0;
+    for (File file : fileNames) {
+      if(file.isFile()) {
+        i++;
+        HTMLDocument htmlDocument = htmlParse.getDocument(file);
+        DocumentIndexed doc = new DocumentIndexed(_documents.size());
+
+        processDocument(htmlDocument.getBodyText(), doc);
+
+        doc.setTitle(htmlDocument.getTitle());
+        doc.setUrl(htmlDocument.getUrl());
+        _documents.add(doc);
+        ++_numDocs;
+      }else if(file.isDirectory()){
+        processFiles(dir+file.getName());
+      }else if(file.isHidden()){
+        continue;
+      }
+    }
   }
 
   private void processDocument(String content, DocumentIndexed doc) {

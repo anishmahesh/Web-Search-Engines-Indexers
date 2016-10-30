@@ -49,21 +49,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     });
     System.out.println("Construct index from: " + dir);
 
-    HTMLParse htmlParse = new HTMLParse();
-    int i = 0;
-    for (File fileName : fileNames) {
-      i++;
-      HTMLDocument htmlDocument = htmlParse.getDocument(fileName);
-      DocumentIndexed doc = new DocumentIndexed(_documents.size());
+    processFiles(dir);
 
-      processDocument(htmlDocument.getBodyText(), doc);
-
-      doc.setTitle(htmlDocument.getTitle());
-      doc.setUrl(htmlDocument.getUrl());
-      _documents.add(doc);
-      ++_numDocs;
-//      if (i == 1000) break;
-    }
     System.out.println(
             "Indexed " + Integer.toString(_numDocs) + " docs with " +
                     Long.toString(_terms.size()) + " terms.");
@@ -76,6 +63,33 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     writer.close();
 
     System.out.println("test");
+  }
+
+
+  private void processFiles(String dir) throws IOException {
+    File[] fileNames = new File(dir).listFiles();
+    HTMLParse htmlParse = new HTMLParse();
+    int i=0;
+    for (File file : fileNames) {
+      if(file.isFile()) {
+        i++;
+        HTMLDocument htmlDocument = htmlParse.getDocument(file);
+        DocumentIndexed doc = new DocumentIndexed(_documents.size());
+
+        processDocument(htmlDocument.getBodyText(), doc);
+
+        doc.setTitle(htmlDocument.getTitle());
+        doc.setUrl(htmlDocument.getUrl());
+        _documents.add(doc);
+        ++_numDocs;
+      }else if(file.isDirectory()){
+        //not recursively going inside a directory
+        continue;
+        //processFiles(dir+file.getName());
+      }else if(file.isHidden()){
+        continue;
+      }
+    }
   }
 
   private void processDocument(String content, DocumentIndexed doc) {
