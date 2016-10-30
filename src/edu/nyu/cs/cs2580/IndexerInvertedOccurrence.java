@@ -242,4 +242,48 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
   public int totalTermsInDocument(int docid) {
     return 1;
   }
+
+  int noOfFiles=500;
+
+
+  public void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
+    int termId = _dictionary.get(term);
+    loadMiniIndex((int)(termId/noOfFiles));
+  }
+
+  private void loadMiniIndex(int indexNo)throws FileNotFoundException{
+
+    File idxFolder = new File(_options._indexPrefix);
+    File[] indexFiles= idxFolder.listFiles();
+
+    if(indexNo < indexFiles.length) {
+      StringBuilder fileName = new StringBuilder(_options._indexPrefix).append("index-part-").append(indexNo);
+
+      FileInputStream in = new FileInputStream(fileName.toString());
+      BufferedReader br = new BufferedReader(new InputStreamReader(in));
+
+      try {
+
+        Scanner sc = new Scanner(new File(fileName.toString()));
+
+        while (sc.hasNext()) {
+          int termId = Integer.parseInt(sc.next());
+          int docid = Integer.parseInt(sc.next());
+          int noOfOccurances = Integer.parseInt(sc.next());
+          Vector<Integer> termPostingList = new Vector<>();
+          termPostingList.add(docid);
+          termPostingList.add(noOfOccurances);
+          for(int i=0;i<noOfOccurances;i++){
+            termPostingList.add(Integer.parseInt(sc.next()));
+          }
+          _postings.put(termId,termPostingList);
+        }
+        sc.close();
+      }
+      catch (FileNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
 }
