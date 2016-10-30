@@ -22,7 +22,7 @@ public class IndexCompressor {
                 count++;
             }
             number.set(count, (byte) ((int) number.get(count) + 128));
-            outputStream.addAll(0,number);
+            outputStream.addAll(number);
         }
         return outputStream;
     }
