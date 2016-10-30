@@ -15,10 +15,13 @@ import java.util.Vector;
  */
 public class Query {
   public String _query = null;
+  public String _orignalQuery = null;
   public Vector<String> _tokens = new Vector<String>();
 
   public Query(String query) {
     _query = query;
+    _orignalQuery = _query;
+    _query = TextProcessor.regexRemoval(_query);
   }
 
   public void processQuery() {
@@ -26,8 +29,12 @@ public class Query {
       return;
     }
     Scanner s = new Scanner(_query);
+    Stemmer stemmer = new Stemmer();
     while (s.hasNext()) {
-      _tokens.add(s.next());
+      String term = s.next();
+      stemmer.add(term.toCharArray(), term.length());
+      stemmer.stem();
+      _tokens.add(stemmer.toString());
     }
     s.close();
   }
