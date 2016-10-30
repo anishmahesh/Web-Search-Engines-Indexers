@@ -41,7 +41,12 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
   public void constructIndex() throws IOException {
 
     String dir = "./data/wiki/";
-    File[] fileNames = new File(dir).listFiles();
+    File[] fileNames = new File(dir).listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return !name.equals(".DS_Store");
+      }
+    });
     System.out.println("Construct index from: " + dir);
 
     HTMLParse htmlParse = new HTMLParse();
@@ -77,8 +82,12 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     Scanner s = new Scanner(content);
 
     Set<String> uniqueTermsInDoc = new HashSet<>();
+    Stemmer stemmer = new Stemmer();
     while (s.hasNext()) {
-      uniqueTermsInDoc.add(s.next());
+      String term = s.next();
+      stemmer.add(term.toCharArray(), term.length());
+      stemmer.stem();
+      uniqueTermsInDoc.add(stemmer.toString());
     }
 
     for (String token : uniqueTermsInDoc) {

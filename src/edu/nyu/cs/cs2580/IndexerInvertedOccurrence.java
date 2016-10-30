@@ -41,7 +41,12 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
   @Override
   public void constructIndex() throws IOException {
     String dir = "./data/wiki/";
-    File[] fileNames = new File(dir).listFiles();
+    File[] fileNames = new File(dir).listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return !name.equals(".DS_Store");
+      }
+    });
     System.out.println("Construct index from: " + dir);
 
     HTMLParse htmlParse = new HTMLParse();
@@ -79,8 +84,12 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     Map<String, Vector<Integer>> termOccurenceMap = new HashMap<>();
 
     int offset = 0;
+    Stemmer stemmer = new Stemmer();
     while (s.hasNext()) {
       String term = s.next();
+      stemmer.add(term.toCharArray(), term.length());
+      stemmer.stem();
+      term = stemmer.toString();
 
       if (!termOccurenceMap.containsKey(term)) {
         Vector<Integer> occurence = new Vector<>();
