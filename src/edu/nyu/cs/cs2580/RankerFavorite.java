@@ -52,7 +52,7 @@ public class RankerFavorite extends Ranker {
 
     double queryLikelyhoodProbability = 1.0;
     double totalTermsInDoc = ((DocumentIndexed)doc).getTotalTerms();
-    double totalTermsInCourpus = _indexer._totalTermFrequency;
+    double totalTermsInCourpus = _indexer.totalTermFrequency();
     double lambda = 0.5;
 
     for(String queryToken : query._tokens){
