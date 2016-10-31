@@ -89,7 +89,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
         doc.setTitle(htmlDocument.getTitle());
         doc.setUrl(htmlDocument.getUrl());
-        doc.setDocTermFrequency(1);
         _documents.add(doc);
         ++_numDocs;
 
@@ -256,12 +255,16 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
     Set<String> uniqueTermsInDoc = new HashSet<>();
     Stemmer stemmer = new Stemmer();
+    int count = 0;
     while (s.hasNext()) {
       String term = s.next();
       stemmer.add(term.toCharArray(), term.length());
       stemmer.stem();
       uniqueTermsInDoc.add(stemmer.toString());
+      count++;
     }
+
+    doc.setTotalTerms(count);
 
     for (String token : uniqueTermsInDoc) {
       int idx;
@@ -319,6 +322,9 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     int sameDocId = -1;
     boolean allQueryTermsInSameDoc = true;
     for(String term : query._tokens){
+      if (!_dictionary.containsKey(term)) {
+        return null;
+      }
       loadTermIfNotLoaded(term);
       idArray.add(next(term,docid));
     }
@@ -423,7 +429,8 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
   @Override
   public int corpusDocFrequencyByTerm(String term) {
-    return 0;
+    loadTermIfNotLoaded(term);
+    return _postings.get(_dictionary.get(term)).size();
   }
 
   @Override

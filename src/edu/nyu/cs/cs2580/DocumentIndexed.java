@@ -6,14 +6,14 @@ package edu.nyu.cs.cs2580;
  */
 public class DocumentIndexed extends Document {
   private static final long serialVersionUID = 9184892508124423115L;
-  private int _documentTermFrequency;
+  private int totalTerms;
 
-  public void setDocTermFrequency(int docTermFrequency){
-    _documentTermFrequency = docTermFrequency;
+  public void setTotalTerms(int total){
+    totalTerms = total;
   }
 
-  public int getDocTermFrequency(){
-    return _documentTermFrequency;
+  public int getTotalTerms(){
+    return totalTerms;
   }
 
   public DocumentIndexed(int docid) {

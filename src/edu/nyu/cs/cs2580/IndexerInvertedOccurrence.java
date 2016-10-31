@@ -4,7 +4,6 @@ import java.io.*;
 import java.util.*;
 
 import edu.nyu.cs.cs2580.SearchEngine.Options;
-import javafx.geometry.Pos;
 
 /**
  * @CS2580: Implement this class for HW2.
@@ -93,7 +92,6 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
         doc.setTitle(htmlDocument.getTitle());
         doc.setUrl(htmlDocument.getUrl());
-        doc.setDocTermFrequency(1);
         _documents.add(doc);
         ++_numDocs;
 
@@ -283,6 +281,8 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
       offset++;
     }
 
+    doc.setTotalTerms(offset);
+
     for (String token : termOccurenceMap.keySet()) {
       int idx;
       if (_dictionary.containsKey(token)) {
@@ -316,6 +316,9 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     this._skipList = loaded._skipList;
     // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
     this._numDocs = _documents.size();
+    for (Document doc : _documents) {
+      this._totalTermFrequency += ((DocumentIndexed) doc).getTotalTerms();
+    }
 
     this._dictionary = loaded._dictionary;
     this._terms = loaded._terms;
@@ -335,16 +338,11 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
   public Document nextDoc(Query query, int docid) {
 
       System.out.println("loading individual indexes");
-      for(String token:query._tokens){
-        if(!_postings.containsKey(token)){
-          try {
-            loadIndexOnFlyForTerm(token);
-          } catch (IOException e) {
-            e.printStackTrace();
-          } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-          }
+      for(String token: query._tokens){
+        if (!_dictionary.containsKey(token)) {
+          return null;
         }
+        loadTermIfNotLoaded(token);
       }
     System.out.println("mini indexes loaded");
 
@@ -427,6 +425,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   @Override
   public int corpusDocFrequencyByTerm(String term) {
+    loadTermIfNotLoaded(term);
     Vector<Integer> PostingList = getPostingListforTerm(term);
     int corpusDocFrequencyByTerm = 0;
     for(int i=0; i< PostingList.size()-1;){
@@ -460,8 +459,14 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     return 0;
   }
 
-  public int totalTermsInDocument(int docid) {
-    return 1;
+  private void loadTermIfNotLoaded(String term) {
+    if (!_postings.containsKey(_dictionary.get(term))) {
+      try {
+        loadIndexOnFlyForTerm(term);
+      } catch (IOException | ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   private void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
@@ -475,7 +480,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     File[] indexFiles= idxFolder.listFiles();
 
     if(indexNo < indexFiles.length) {
-      String fileName = _options._indexPrefix + "index-part-" + indexNo + ".tsv";
+      String fileName = _options._indexPrefix + "/index-part-" + indexNo + ".tsv";
 
       try {
         BufferedReader reader = new BufferedReader(new FileReader(fileName));

@@ -86,7 +86,6 @@ public class IndexerInvertedCompressed extends Indexer {
 
         doc.setTitle(htmlDocument.getTitle());
         doc.setUrl(htmlDocument.getUrl());
-        doc.setDocTermFrequency(1);
         _documents.add(doc);
         ++_numDocs;
       }else if(file.isDirectory()){
@@ -131,6 +130,8 @@ public class IndexerInvertedCompressed extends Indexer {
       }
       offset++;
     }
+
+    doc.setTotalTerms(offset);
 
     for (String token : termOccurenceMap.keySet()) {
       int idx;
