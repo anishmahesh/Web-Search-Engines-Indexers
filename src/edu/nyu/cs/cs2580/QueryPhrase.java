@@ -49,7 +49,7 @@ public class QueryPhrase extends Query {
       String term = s1.next();
       stemmer.add(term.toCharArray(), term.length());
       stemmer.stem();
-      _tokens.add(stemmer.toString());
+      _tokens.add(stemmer.toString().toLowerCase());
     }
     s1.close();
   }
