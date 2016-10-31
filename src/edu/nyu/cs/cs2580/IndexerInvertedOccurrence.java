@@ -327,7 +327,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
   @Override
   public Document getDoc(int docid) {
-    return null;
+    return _documents.get(docid);
   }
 
   /**
@@ -336,27 +336,24 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
   @Override
   public Document nextDoc(Query query, int docid) {
 
-      for(String token: query._tokens){
-        if (!_dictionary.containsKey(token)) {
-          return null;
-        }
-        loadTermIfNotLoaded(token);
-      }
-
       if(query instanceof QueryPhrase){
-          return nextDocPhrase(query, docid);
+          return nextDocPhrase((QueryPhrase) query, docid);
       } else {
-          return nextDocIndividualTokens(query, docid);
+          return nextDocIndividualTokens(query._tokens, docid);
       }
   }
 
-  public Document nextDocIndividualTokens(Query query, int docid) {
+  public Document nextDocIndividualTokens(Vector<String> queryTokens, int docid) {
         List<Integer> idArray = new ArrayList<>();
         int maxId = -1;
         int sameDocId = -1;
         boolean allQueryTermsInSameDoc = true;
-        for(String term : query._tokens){
-            idArray.add(next(term,docid));
+        for(String term : queryTokens){
+          if (!_dictionary.containsKey(term)) {
+            return null;
+          }
+          loadTermIfNotLoaded(term);
+          idArray.add(next(term,docid));
         }
         for(int id : idArray){
             if(id == -1){
@@ -375,22 +372,99 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     if(allQueryTermsInSameDoc){
       return _documents.get(sameDocId);
     }
-    return nextDoc(query, maxId-1);
+    return nextDocIndividualTokens(queryTokens, maxId-1);
   }
 
-  public Document nextDocPhrase(Query query, int docid){
-      return null;
+  public Document nextDocPhrase(QueryPhrase query, int docid){
+    List<Integer> idArray = new ArrayList<>();
+    int maxId = -1;
+    int sameDocId = -1;
+    boolean allQueryTermsInSameDoc = true;
+    for(String term : query._tokens){
+      if (!_dictionary.containsKey(term)) {
+        return null;
+      }
+      loadTermIfNotLoaded(term);
+      idArray.add(next(term,docid));
+    }
+
+    for (Vector<String> phraseTerms : query._phraseTokens) {
+      idArray.add(nextForPhrase(phraseTerms, docid));
+    }
+
+    for(int id : idArray){
+      if(id == -1){
+        return null;
+      }
+      if(sameDocId == -1){
+        sameDocId = id;
+      }
+      if(id != sameDocId){
+        allQueryTermsInSameDoc = false;
+      }
+      if(id > maxId){
+        maxId = id;
+      }
+    }
+    if(allQueryTermsInSameDoc){
+      return _documents.get(sameDocId);
+    }
+    return nextDocPhrase(query, maxId-1);
+  }
+
+  private int nextForPhrase(Vector<String> phraseTerms, int docid) {
+    Document docForPhrase = nextDocIndividualTokens(phraseTerms, docid);
+    if (docForPhrase == null) {
+      return -1;
+    }
+
+    Map<String, Vector<Integer>> termPositionMap = getTermPositionMapForDoc(phraseTerms, docForPhrase._docid);
+
+    String firstTerm = phraseTerms.get(0);
+    for (int firstPos : termPositionMap.get(firstTerm)) {
+      int i;
+      for (i = 1; i < phraseTerms.size(); i++) {
+        if (!termPositionMap.get(phraseTerms.get(i)).contains(firstPos + i)) {
+          break;
+        }
+      }
+      if (i == phraseTerms.size()) {
+        return docForPhrase._docid;
+      }
+    }
+
+    return nextForPhrase(phraseTerms, docForPhrase._docid);
+  }
+
+  private Map<String, Vector<Integer>> getTermPositionMapForDoc(Vector<String> phraseTerms, int docForPhrase) {
+    Map<String, Vector<Integer>> termPosMap = new HashMap<>();
+
+    Vector<Integer> posList = new Vector<>();
+    for (String term : phraseTerms) {
+      int docPos = binarySearchResultIndex(term, docForPhrase - 1);
+      Vector<Integer> postingListforTerm = getPostingListforTerm(term);
+      for (int i = 0 ; i < postingListforTerm.get(docPos + 1) ; i++) {
+        posList.add(postingListforTerm.get(docPos + 2 + i));
+      }
+      termPosMap.put(term, posList);
+    }
+
+    return termPosMap;
   }
 
   public int next(String queryTerm, int docid){
-    return binarySearchResultIndex(queryTerm, docid);
+    int binarySearchResultIndex = binarySearchResultIndex(queryTerm, docid);
+    if (binarySearchResultIndex == -1)
+      return -1;
+
+    return getPostingListforTerm(queryTerm).get(binarySearchResultIndex);
   }
 
-  public Vector<Integer> getPostingListforTerm(String term){
+  private Vector<Integer> getPostingListforTerm(String term){
     return _postings.get(_dictionary.get(term));
   }
 
-  public Vector<Integer> getSkipListforTerm(String term){
+  private Vector<Integer> getSkipListforTerm(String term){
     return _skipList.get(_dictionary.get(term));
   }
 
@@ -404,7 +478,7 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     if(PostingList.get(1)>current){
       return PostingList.get(1);
     }
-    return PostingList.get(binarySearch(PostingList,SkipList,1,lt,current));
+    return binarySearch(PostingList,SkipList,1,lt,current);
   }
 
   private int binarySearch(Vector<Integer> PostingList, Vector<Integer> SkipList, int low, int high, int current){

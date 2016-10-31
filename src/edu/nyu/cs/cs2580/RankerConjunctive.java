@@ -24,12 +24,12 @@ public class RankerConjunctive extends Ranker {
   @Override
   public Vector<ScoredDocument> runQuery(Query query, int numResults) {
     Queue<ScoredDocument> rankQueue = new PriorityQueue<ScoredDocument>();
-    Document doc = null;
+    Document doc;
     int docid = -1;
     while ((doc = _indexer.nextDoc(query, docid)) != null) {
       rankQueue.add(new ScoredDocument(doc, 1.0));
-      if (rankQueue.size() > numResults) {
-        rankQueue.poll();
+      if (rankQueue.size() == numResults) {
+        break;
       }
       docid = doc._docid;
     }

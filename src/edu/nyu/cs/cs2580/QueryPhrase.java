@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
  * recorded here and be used in indexing and ranking.
  */
 public class QueryPhrase extends Query {
-  public Vector<String> _consecutiveTokens = new Vector<String>();
+  public Vector<Vector<String>> _phraseTokens = new Vector<>();
 
   public QueryPhrase(String query) {
     super(query);
@@ -22,25 +22,29 @@ public class QueryPhrase extends Query {
     if(_query == null){
       return;
     }
-    String queryString;
-    String tokenString = "";
-    Pattern pattern = Pattern.compile("([\"'])(?:(?=(\\\\?))\\2.)*?\\1");
-    Matcher matcher = pattern.matcher(_query);
-    while (matcher.find()) {
-      queryString = matcher.group(1);
-      queryString = TextProcessor.regexRemoval(queryString);
-      Scanner s = new Scanner(queryString);
+
+    Scanner s = new Scanner(_query);
+
+    Pattern pattern = Pattern.compile("\"[^\"]*\"");
+    String phrase;
+    while ((phrase = s.findInLine(pattern)) != null) {
+      _query = _query.replace(phrase, "");
+      phrase = TextProcessor.regexRemoval(phrase);
+
+      Vector<String> token = new Vector<>();
+
+      Scanner s1 = new Scanner(phrase);
       Stemmer stemmer = new Stemmer();
-      while (s.hasNext()) {
-        String term = s.next();
+      while (s1.hasNext()) {
+        String term = s1.next();
         stemmer.add(term.toCharArray(), term.length());
         stemmer.stem();
-        tokenString.concat(stemmer.toString());
+        token.add(stemmer.toString());
       }
-      s.close();
-      _consecutiveTokens.add(tokenString);
-      _query.replaceFirst("([\"'])(?:(?=(\\\\?))\\2.)*?\\1","");
+      s1.close();
+      _phraseTokens.add(token);
     }
+    s.close();
 
     _query = TextProcessor.regexRemoval(_query);
     Scanner s1 = new Scanner(_query);

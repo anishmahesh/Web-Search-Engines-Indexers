@@ -155,7 +155,7 @@ class QueryHandler implements HttpHandler {
 
     Vector<ScoredDocument> scoredDocs = null;
     // Processing the query.
-    if(cgiArgs._query.matches("([\"'])(?:(?=(\\\\?))\\2.)*?\\1")){
+    if(cgiArgs._query.matches(".*?\".*\".*?")){
       QueryPhrase processedQuery = new QueryPhrase(cgiArgs._query);
         processedQuery.processQuery();
         scoredDocs =

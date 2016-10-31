@@ -15,19 +15,17 @@ import java.util.Vector;
  */
 public class Query {
   public String _query = null;
-  public String _orignalQuery = null;
   public Vector<String> _tokens = new Vector<String>();
 
   public Query(String query) {
     _query = query;
-    _orignalQuery = _query;
-    _query = TextProcessor.regexRemoval(_query);
   }
 
   public void processQuery() {
     if (_query == null) {
       return;
     }
+    _query = TextProcessor.regexRemoval(_query);
     Scanner s = new Scanner(_query);
     Stemmer stemmer = new Stemmer();
     while (s.hasNext()) {
