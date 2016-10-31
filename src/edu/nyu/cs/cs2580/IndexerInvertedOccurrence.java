@@ -22,15 +22,6 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
   // All unique terms appeared in corpus. Offsets are integer representations.
   private Vector<String> _terms = new Vector<String>();
 
-  // Term document frequency, key is the integer representation of the term and
-  // value is the number of documents the term appears in.
-  private Map<Integer, Integer> _termDocFrequency =
-          new HashMap<Integer, Integer>();
-  // Term frequency, key is the integer representation of the term and value is
-  // the number of times the term appears in the corpus.
-  private Map<Integer, Integer> _termCorpusFrequency =
-          new HashMap<Integer, Integer>();
-
   // Stores all Document in memory.
   private Vector<Document> _documents = new Vector<Document>();
 
@@ -328,8 +319,6 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
 
     this._dictionary = loaded._dictionary;
     this._terms = loaded._terms;
-    this._termCorpusFrequency = loaded._termCorpusFrequency;
-    this._termDocFrequency = loaded._termDocFrequency;
     this._documents = loaded._documents;
     reader.close();
   }
@@ -475,41 +464,38 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     return 1;
   }
 
-  public void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
+  private void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
     int termId = _dictionary.get(term);
     loadMiniIndex(termId/TERM_COUNT_FOR_INDEX_SPLIT);
   }
 
-  private void loadMiniIndex(int indexNo)throws FileNotFoundException{
+  private void loadMiniIndex(int indexNo) throws IOException {
 
     File idxFolder = new File(_options._indexPrefix);
     File[] indexFiles= idxFolder.listFiles();
 
     if(indexNo < indexFiles.length) {
-      StringBuilder fileName = new StringBuilder(_options._indexPrefix).append("index-part-").append(indexNo).append(".tsv");
-
-      FileInputStream in = new FileInputStream(fileName.toString());
-      BufferedReader br = new BufferedReader(new InputStreamReader(in));
+      String fileName = _options._indexPrefix + "index-part-" + indexNo + ".tsv";
 
       try {
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
 
-        Scanner sc = new Scanner(new File(fileName.toString()));
+        String line;
+        while ((line = reader.readLine()) != null) {
+          int termId = Integer.parseInt(line);
+          line = reader.readLine();
 
-        while (sc.hasNext()) {
-          int termId = Integer.parseInt(sc.next());
-          int docid = Integer.parseInt(sc.next());
-          int noOfOccurances = Integer.parseInt(sc.next());
+          Scanner sc = new Scanner(line);
+
           Vector<Integer> termPostingList = new Vector<>();
-          termPostingList.add(docid);
-          termPostingList.add(noOfOccurances);
-          for(int i=0;i<noOfOccurances;i++){
+          while (sc.hasNext()) {
             termPostingList.add(Integer.parseInt(sc.next()));
           }
           _postings.put(termId,termPostingList);
+          sc.close();
         }
-        sc.close();
       }
-      catch (FileNotFoundException e) {
+      catch (IOException e) {
         e.printStackTrace();
       }
     }

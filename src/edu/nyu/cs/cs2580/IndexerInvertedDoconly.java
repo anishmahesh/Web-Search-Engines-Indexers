@@ -21,15 +21,6 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
   // All unique terms appeared in corpus. Offsets are integer representations.
   private Vector<String> _terms = new Vector<String>();
 
-  // Term document frequency, key is the integer representation of the term and
-  // value is the number of documents the term appears in.
-  private Map<Integer, Integer> _termDocFrequency =
-          new HashMap<Integer, Integer>();
-  // Term frequency, key is the integer representation of the term and value is
-  // the number of times the term appears in the corpus.
-  private Map<Integer, Integer> _termCorpusFrequency =
-          new HashMap<Integer, Integer>();
-
   // Stores all Document in memory.
   private Vector<Document> _documents = new Vector<Document>();
 
@@ -297,6 +288,20 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
 
   @Override
   public void loadIndex() throws IOException, ClassNotFoundException {
+    String indexFile = _options._indexPrefix + "/objects.idx";
+    System.out.println("Loading index objects other than postings list from: " + indexFile);
+
+    ObjectInputStream reader =
+            new ObjectInputStream(new FileInputStream(indexFile));
+    IndexerInvertedDoconly loaded = (IndexerInvertedDoconly) reader.readObject();
+
+    // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
+    this._numDocs = _documents.size();
+
+    this._dictionary = loaded._dictionary;
+    this._terms = loaded._terms;
+    this._documents = loaded._documents;
+    reader.close();
   }
 
   @Override
@@ -314,6 +319,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
     int sameDocId = -1;
     boolean allQueryTermsInSameDoc = true;
     for(String term : query._tokens){
+      loadTermIfNotLoaded(term);
       idArray.add(next(term,docid));
     }
     for(int id : idArray){
@@ -329,11 +335,21 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
       if(id > maxId){
         maxId = id;
       }
-      if(allQueryTermsInSameDoc){
-        return _documents.get(sameDocId);
-      }
+    }
+    if(allQueryTermsInSameDoc){
+      return _documents.get(sameDocId);
     }
     return nextDoc(query, maxId-1);
+  }
+
+  private void loadTermIfNotLoaded(String term) {
+    if (!_postings.containsKey(_dictionary.get(term))) {
+      try {
+        loadIndexOnFlyForTerm(term);
+      } catch (IOException | ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   public int next(String queryTerm, int docid){
@@ -367,6 +383,42 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
       }
     }
     return high;
+  }
+
+  private void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
+    int termId = _dictionary.get(term);
+    loadMiniIndex(termId/TERM_COUNT_FOR_INDEX_SPLIT);
+  }
+
+  private void loadMiniIndex(int indexNo) throws IOException {
+
+    File idxFolder = new File(_options._indexPrefix);
+    File[] indexFiles = idxFolder.listFiles();
+
+    if (indexNo < indexFiles.length) {
+      String fileName = _options._indexPrefix + "/index-part-" + indexNo + ".tsv";
+
+      try {
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+          int termId = Integer.parseInt(line);
+          line = reader.readLine();
+
+          Scanner sc = new Scanner(line);
+
+          Vector<Integer> termPostingList = new Vector<>();
+          while (sc.hasNext()) {
+            termPostingList.add(Integer.parseInt(sc.next()));
+          }
+          _postings.put(termId, termPostingList);
+          sc.close();
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   @Override
