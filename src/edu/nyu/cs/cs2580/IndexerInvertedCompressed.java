@@ -199,11 +199,11 @@ public class IndexerInvertedCompressed extends Indexer {
           if(id > maxId){
               maxId = id;
           }
-          if(allQueryTermsInSameDoc){
-              return _documents.get(sameDocId);
-          }
       }
-      return nextDoc(query, maxId-1);
+    if(allQueryTermsInSameDoc){
+      return _documents.get(sameDocId);
+    }
+    return nextDoc(query, maxId-1);
   }
 
   public Document nextDocPhrase(Query query, int docid){

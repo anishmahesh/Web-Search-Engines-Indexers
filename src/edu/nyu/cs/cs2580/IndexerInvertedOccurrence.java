@@ -313,7 +313,6 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
             new ObjectInputStream(new FileInputStream(indexFile));
     IndexerInvertedOccurrence loaded = (IndexerInvertedOccurrence) reader.readObject();
 
-    this._skipList = loaded._skipList;
     // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
     this._numDocs = _documents.size();
     for (Document doc : _documents) {
@@ -337,14 +336,12 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
   @Override
   public Document nextDoc(Query query, int docid) {
 
-      System.out.println("loading individual indexes");
       for(String token: query._tokens){
         if (!_dictionary.containsKey(token)) {
           return null;
         }
         loadTermIfNotLoaded(token);
       }
-    System.out.println("mini indexes loaded");
 
       if(query instanceof QueryPhrase){
           return nextDocPhrase(query, docid);
@@ -374,11 +371,11 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
             if(id > maxId){
                 maxId = id;
             }
-            if(allQueryTermsInSameDoc){
-                return _documents.get(sameDocId);
-            }
         }
-      return nextDoc(query, maxId-1);
+    if(allQueryTermsInSameDoc){
+      return _documents.get(sameDocId);
+    }
+    return nextDoc(query, maxId-1);
   }
 
   public Document nextDocPhrase(Query query, int docid){
@@ -497,6 +494,15 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
             termPostingList.add(Integer.parseInt(sc.next()));
           }
           _postings.put(termId,termPostingList);
+
+          Vector<Integer> skipPtrs = new Vector<>();
+          int i = 0;
+          while (i < termPostingList.size()) {
+            skipPtrs.add(i);
+            i += termPostingList.get(i+1) + 2;
+          }
+
+          _skipList.put(termId, skipPtrs);
           sc.close();
         }
       }
