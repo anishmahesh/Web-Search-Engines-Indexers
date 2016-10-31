@@ -313,15 +313,16 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
             new ObjectInputStream(new FileInputStream(indexFile));
     IndexerInvertedOccurrence loaded = (IndexerInvertedOccurrence) reader.readObject();
 
+    this._dictionary = loaded._dictionary;
+    this._terms = loaded._terms;
+    this._documents = loaded._documents;
+
     // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
     this._numDocs = _documents.size();
     for (Document doc : _documents) {
       this._totalTermFrequency += ((DocumentIndexed) doc).getTotalTerms();
     }
 
-    this._dictionary = loaded._dictionary;
-    this._terms = loaded._terms;
-    this._documents = loaded._documents;
     reader.close();
   }
 
@@ -475,10 +476,10 @@ public class IndexerInvertedOccurrence extends Indexer implements Serializable {
     if(lt == 0 || PostingList.get(SkipList.get(lt)) <= current){
       return -1;
     }
-    if(PostingList.get(1)>current){
-      return PostingList.get(1);
+    if(PostingList.get(0)>current){
+      return PostingList.get(0);
     }
-    return binarySearch(PostingList,SkipList,1,lt,current);
+    return binarySearch(PostingList,SkipList,0,lt,current);
   }
 
   private int binarySearch(Vector<Integer> PostingList, Vector<Integer> SkipList, int low, int high, int current){

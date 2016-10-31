@@ -25,6 +25,7 @@ public class Query {
     if (_query == null) {
       return;
     }
+    _query = _query.toLowerCase();
     _query = TextProcessor.regexRemoval(_query);
     Scanner s = new Scanner(_query);
     Stemmer stemmer = new Stemmer();

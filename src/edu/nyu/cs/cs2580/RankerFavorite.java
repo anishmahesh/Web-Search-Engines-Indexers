@@ -61,6 +61,16 @@ public class RankerFavorite extends Ranker {
       queryLikelyhoodProbability *= (1-lambda)*(termFrequency/totalTermsInDoc)+(lambda)*(corpusTermFrequency/totalTermsInCourpus);
     }
 
+    if (query instanceof QueryPhrase) {
+      for (Vector<String> phraseTokens : ((QueryPhrase) query)._phraseTokens) {
+        for(String queryToken : phraseTokens){
+          double termFrequency = _indexer.documentTermFrequency(queryToken,doc._docid);
+          double corpusTermFrequency = _indexer.corpusDocFrequencyByTerm(queryToken);
+          queryLikelyhoodProbability *= (1-lambda)*(termFrequency/totalTermsInDoc)+(lambda)*(corpusTermFrequency/totalTermsInCourpus);
+        }
+      }
+    }
+
     return new ScoredDocument(doc, queryLikelyhoodProbability);
   }
 }
