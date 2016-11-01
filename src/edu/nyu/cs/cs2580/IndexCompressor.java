@@ -22,9 +22,25 @@ public class IndexCompressor {
                 count++;
             }
             number.set(count, (byte) ((int) number.get(count) + 128));
+
             outputStream.addAll(number);
         }
         return outputStream;
+    }
+
+    public static Vector<Byte> vByteEncoder(int n) {
+        int count = 0;
+        Vector<Byte> number = new Vector<Byte>();
+        while (true) {
+            int no = n % 128;
+            number.add(0, (byte) no);
+            if (n < 128)
+                break;
+            n = n / 128;
+            count++;
+        }
+        number.set(count, (byte) ((int) number.get(count) + 128));
+        return number;
     }
 
 
