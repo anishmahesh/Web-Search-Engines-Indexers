@@ -372,10 +372,10 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
       if(lt == 0 || PostingList.get(lt) <= current){
           return -1;
       }
-      if(PostingList.get(1)>current){
-          return PostingList.get(1);
+      if(PostingList.get(0)>current){
+          return PostingList.get(0);
       }
-      return PostingList.get(binarySearch(PostingList,1,lt,current));
+      return PostingList.get(binarySearch(PostingList,0,lt,current));
   }
 
   private int binarySearch(Vector<Integer> PostingList, int low, int high, int current){
@@ -412,7 +412,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
           int termId = Integer.parseInt(line);
           line = reader.readLine();
 
-          Scanner sc = new Scanner(line);
+          Scanner sc = new Scanner(line).useDelimiter("\t");
 
           Vector<Integer> termPostingList = new Vector<>();
           while (sc.hasNext()) {

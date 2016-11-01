@@ -23,6 +23,7 @@ public class QueryPhrase extends Query {
       return;
     }
 
+    _query = _query.toLowerCase();
     Scanner s = new Scanner(_query);
 
     Pattern pattern = Pattern.compile("\"[^\"]*\"");
@@ -53,7 +54,7 @@ public class QueryPhrase extends Query {
       String term = s1.next();
       stemmer.add(term.toCharArray(), term.length());
       stemmer.stem();
-      _tokens.add(stemmer.toString().toLowerCase());
+      _tokens.add(stemmer.toString());
     }
     s1.close();
   }

@@ -10,39 +10,27 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  */
 public class IndexerInvertedCompressed extends Indexer implements Serializable {
 
-
   private static int FILE_COUNT_FOR_INDEX_SPLIT = 500;
+
   private static int TERM_COUNT_FOR_INDEX_SPLIT = 500;
+
   private int indexCount = 0;
 
   // Maps each term to their integer representation
   private Map<String, Integer> _dictionary = new HashMap<String, Integer>();
-
   // All unique terms appeared in corpus. Offsets are integer representations.
   private Vector<String> _terms = new Vector<String>();
-
-  // Term document frequency, key is the integer representation of the term and
-  // value is the number of documents the term appears in.
-  private Map<Integer, Integer> _termDocFrequency =
-          new HashMap<Integer, Integer>();
-
-  // Term frequency, key is the integer representation of the term and value is
-  // the number of times the term appears in the corpus.
-  private Map<Integer, Integer> _termCorpusFrequency =
-          new HashMap<Integer, Integer>();
 
   // Stores all Document in memory.
   private Vector<Document> _documents = new Vector<Document>();
 
-  private Map<Integer, Vector<Byte>> _postings = new HashMap<>();
-
-  private Map<Integer, Vector<Integer>> _decodedPostings = new HashMap<>();
+  private Map<Integer, Vector<Integer>> _postings = new HashMap<>();
 
   //Stores the index of each docid in posting list in sorted order(acc to doc ids)
   private Map<Integer,Vector<Integer>> _skipList = new HashMap<>();
 
-  private Query queryObject = null;
-
+  public IndexerInvertedCompressed() {
+  }
 
   public IndexerInvertedCompressed(Options options) {
     super(options);
@@ -73,6 +61,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     _postings = null;
 
     writeIndexerObjectToFile();
+
   }
 
   private void writeIndexerObjectToFile() throws IOException {
@@ -90,7 +79,9 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   }
 
   private void processFiles(String dir) throws IOException {
+    System.out.println("Inside Directory : "+dir);
     File[] fileNames = new File(dir).listFiles();
+    System.out.println("Construct index from: " + dir);
     HTMLParse htmlParse = new HTMLParse();
     int fileNum = 0;
     for (File file : fileNames) {
@@ -184,7 +175,6 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
 
   }
 
-
   private File mergeFiles(File first, File second) throws IOException {
     String tempFile = _options._indexPrefix + "/temp.tsv";
 
@@ -199,18 +189,18 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
 
     while ((lineInFirstFile != null) && (lineInSecondFile != null)) {
 
-      Byte a = Byte.parseByte(lineInFirstFile);
-      Byte b = Byte.parseByte(lineInSecondFile);
-      if (Byte.parseByte(lineInFirstFile) < Byte.parseByte(lineInSecondFile)) {
+      if (Integer.parseInt(lineInFirstFile) < Integer.parseInt(lineInSecondFile)) {
         writer.write(lineInFirstFile + "\n");
         lineInFirstFile = firstReader.readLine();
         writer.write(lineInFirstFile + "\n");
+
         lineInFirstFile = firstReader.readLine();
       }
-      else if (Byte.parseByte(lineInSecondFile) > Byte.parseByte(lineInFirstFile)) {
+      else if (Integer.parseInt(lineInSecondFile) > Integer.parseInt(lineInFirstFile)) {
         writer.write(lineInSecondFile + "\n");
         lineInSecondFile = secondReader.readLine();
         writer.write(lineInSecondFile + "\n");
+
         lineInSecondFile = secondReader.readLine();
       }
       else {
@@ -250,14 +240,12 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     termIds.addAll(_postings.keySet());
     Collections.sort(termIds);
 
-
     for (Integer termId: termIds) {
-      Vector<Integer> termIdAsVector = new Vector<>();
-      termIdAsVector.add(termId);
-      writer.write(IndexCompressor.vByteEncoder(termIdAsVector).get(0) + "\n");
+      writer.write(termId.toString() + "\n");
 
-      Vector<Byte> docOccs = _postings.get(termId);
+      Vector<Integer> docOccs = _postings.get(termId);
       for (int i = 0; i < docOccs.size(); i++) {
+
         writer.write(docOccs.get(i).toString() + "\t");
       }
       writer.write("\n");
@@ -267,63 +255,10 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     _postings.clear();
   }
 
-/*  private void processDocument(String content, DocumentIndexed doc) {
-    Scanner s = new Scanner(content);
-
-    Map<String, Vector<Byte>> termOccurenceMap = new HashMap<>();
-    Map<Integer,Integer> lastTermIndex = new HashMap<>();
-
-    int offset = 0;
-
-    while (s.hasNext()) {
-
-      String term = s.next();
-
-      if (!termOccurenceMap.containsKey(term)) {
-        Vector<Integer> occurence = new Vector<>();
-        Vector<Integer> skipIndex =  new Vector<>();
-        occurence.add(doc._docid);
-        occurence.add(1);
-        occurence.add(offset);
-        lastTermIndex.put(_dictionary.get(term), offset);
-        skipIndex.add(0);
-        _skipList.put(_dictionary.get(term),skipIndex);
-        termOccurenceMap.put(term, IndexCompressor.vByteEncoder(occurence));
-      } else {
-        Vector<Integer> occurence = IndexCompressor.vByteDecoder(termOccurenceMap.get(term));
-        occurence.set(1, occurence.get(1) + 1);
-
-        //Magic happens here
-        _skipList.get(_dictionary.get(term)).add(termOccurenceMap.size());
-        int currentPointer = lastTermIndex.get(term);
-        occurence.add(offset-currentPointer);
-        lastTermIndex.put(_dictionary.get(term),offset);
-      }
-      offset++;
-    }
-
-    doc.setTotalTerms(offset);
-
-    for (String token : termOccurenceMap.keySet()) {
-      int idx;
-      if (_dictionary.containsKey(token)) {
-        idx = _dictionary.get(token);
-        _postings.get(idx).addAll(termOccurenceMap.get(token));
-      } else {
-        idx = _terms.size();
-        _terms.add(token);
-        _dictionary.put(token, idx);
-        _postings.put(idx, termOccurenceMap.get(token));
-      }
-    }
-    s.close();
-  }
-*/
   private void processDocument(String content, DocumentIndexed doc) {
     Scanner s = new Scanner(content);
 
-    Map<String, Vector<Byte>> termOccurenceMap = new HashMap<>();
-    Map<String,Integer> lastTermIndex = new HashMap<>();
+    Map<String, Vector<Integer>> termOccurenceMap = new HashMap<>();
 
     int offset = 0;
     Stemmer stemmer = new Stemmer();
@@ -338,15 +273,11 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
         occurence.add(doc._docid);
         occurence.add(1);
         occurence.add(offset);
-        lastTermIndex.put(term, offset);
-        termOccurenceMap.put(term, IndexCompressor.vByteEncoder(occurence));
+        termOccurenceMap.put(term, occurence);
       }
       else {
-        Vector<Integer> occurence = IndexCompressor.vByteDecoder(termOccurenceMap.get(term));
+        Vector<Integer> occurence = termOccurenceMap.get(term);
         occurence.set(1, occurence.get(1) + 1);
-        int currentPointer = lastTermIndex.get(term);
-        occurence.add(offset-currentPointer);
-        lastTermIndex.put(term,offset);
         occurence.add(offset);
       }
       offset++;
@@ -384,158 +315,27 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
             new ObjectInputStream(new FileInputStream(indexFile));
     IndexerInvertedCompressed loaded = (IndexerInvertedCompressed) reader.readObject();
 
+    this._dictionary = loaded._dictionary;
+    this._terms = loaded._terms;
+    this._documents = loaded._documents;
+
     // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
     this._numDocs = _documents.size();
     for (Document doc : _documents) {
       this._totalTermFrequency += ((DocumentIndexed) doc).getTotalTerms();
     }
 
-    this._dictionary = loaded._dictionary;
-    this._terms = loaded._terms;
-    this._documents = loaded._documents;
     reader.close();
   }
 
   @Override
   public Document getDoc(int docid) {
-    return null;
-  }
-
-
-  public Vector<Integer> getPostingListforTerm(String term){
-    return IndexCompressor.vByteDecoder(_postings.get(_dictionary.get(term)));
-  }
-
-  public Vector<Integer> getDecodedPostingListforTerm(String term){
-    return _decodedPostings.get(_dictionary.get(term));
-  }
-
-  public Vector<Integer> getSkipListforTerm(String term){
-    return _skipList.get(_dictionary.get(term));
-  }
-
-  private int binarySearchResultIndex(String term, int current){
-    Vector<Integer> PostingList = getDecodedPostingListforTerm(term);
-    Vector<Integer> SkipList = getSkipListforTerm(term);
-    int lt = SkipList.size()-1;
-    if(lt == 0 || PostingList.get(SkipList.get(lt)) <= current){
-      return -1;
-    }
-    if(PostingList.get(1)>current){
-      return PostingList.get(1);
-    }
-    return PostingList.get(binarySearch(PostingList,SkipList,1,lt,current,term));
-  }
-
-  private int binarySearch(Vector<Integer> PostingList, Vector<Integer> SkipList, int low, int high, int current,String term){
-    int mid;
-    while(high - low > 1) {
-      mid = (low + high) / 2;
-      if (PostingList.get(SkipList.get(mid)) <= current) {
-        low = mid;
-      } else {
-        high = mid;
-      }
-    }
-    return SkipList.get(high);
-  }
-
-  public int corpusDocFrequencyByTerm(String term) {
-    Vector<Integer> PostingList = getPostingListforTerm(term);
-    int corpusDocFrequencyByTerm = 0;
-    for(int i=0; i< PostingList.size()-1;){
-      corpusDocFrequencyByTerm++;
-      i += PostingList.get(i+1) + 2;
-    }
-    return corpusDocFrequencyByTerm;
-  }
-
-  @Override
-  public int corpusTermFrequency(String term) {
-    Vector<Integer> PostingList = getPostingListforTerm(term);
-    int corpusTermFrequency = 0;
-    for(int i=0; i< PostingList.size()-1;){
-      corpusTermFrequency += PostingList.get(i+1);
-      i += PostingList.get(i+1) + 2;
-    }
-    return corpusTermFrequency;
+    return _documents.get(docid);
   }
 
   /**
-   * @CS2580: Implement this to work with your RankerFavorite.
+   * In HW2, you should be using {@link DocumentIndexed}.
    */
-  @Override
-  public int documentTermFrequency(String term, int docid) {
-    Vector<Integer> PostingList = getPostingListforTerm(term);
-    for(int i=0; i< PostingList.size()-1;){
-      if(docid == PostingList.get(i)){
-        return  PostingList.get(i+1);
-      } else {
-        i += PostingList.get(i+1) + 2;
-      }
-    }
-    return 0;
-  }
-
-  private void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
-    int termId = _dictionary.get(term);
-    loadMiniIndex(termId/TERM_COUNT_FOR_INDEX_SPLIT);
-  }
-
-  private void loadMiniIndex(int indexNo) throws IOException {
-
-    File idxFolder = new File(_options._indexPrefix);
-    File[] indexFiles = idxFolder.listFiles();
-
-    if (indexNo < indexFiles.length) {
-      String fileName = _options._indexPrefix + "/index-part-" + indexNo + ".tsv";
-
-      try {
-        BufferedReader reader = new BufferedReader(new FileReader(fileName));
-
-        String line;
-        while ((line = reader.readLine()) != null) {
-          int termId = Integer.parseInt(line);
-          line = reader.readLine();
-
-          Scanner sc = new Scanner(line);
-
-          Vector<Byte> termPostingList = new Vector<>();
-          while (sc.hasNext()) {
-            termPostingList.add(Byte.parseByte(sc.next()));
-          }
-          _postings.put(termId, termPostingList);
-
-          Vector<Integer> skipPtrs = new Vector<>();
-          int i = 0;
-          while (i < termPostingList.size()) {
-            skipPtrs.add(i);
-            i += termPostingList.get(i + 1) + 2;
-          }
-
-          _skipList.put(termId, skipPtrs);
-          sc.close();
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-   /*
-   *In HW2, you should be using {@link DocumentIndexed}.
-   */
-
-  private void loadTermIfNotLoaded(String term) {
-    if (!_postings.containsKey(_dictionary.get(term))) {
-      try {
-        loadIndexOnFlyForTerm(term);
-      } catch (IOException | ClassNotFoundException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
   @Override
   public Document nextDoc(Query query, int docid) {
 
@@ -661,5 +461,134 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       return -1;
 
     return getPostingListforTerm(queryTerm).get(binarySearchResultIndex);
+  }
+
+  private Vector<Integer> getPostingListforTerm(String term){
+    return _postings.get(_dictionary.get(term));
+  }
+
+  private Vector<Integer> getSkipListforTerm(String term){
+    return _skipList.get(_dictionary.get(term));
+  }
+
+  private int binarySearchResultIndex(String term, int current){
+    Vector <Integer> PostingList = getPostingListforTerm(term);
+    Vector <Integer> SkipList = getSkipListforTerm(term);
+    int lt = SkipList.size()-1;
+    if(lt == 0 || PostingList.get(SkipList.get(lt)) <= current){
+      return -1;
+    }
+    if(PostingList.get(0)>current){
+      return PostingList.get(0);
+    }
+    return binarySearch(PostingList,SkipList,0,lt,current);
+  }
+
+  private int binarySearch(Vector<Integer> PostingList, Vector<Integer> SkipList, int low, int high, int current){
+    int mid;
+    while(high - low > 1) {
+      mid = (low + high) / 2;
+      if (PostingList.get(SkipList.get(mid)) <= current) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+    return SkipList.get(high);
+  }
+
+  @Override
+  public int corpusDocFrequencyByTerm(String term) {
+    loadTermIfNotLoaded(term);
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    int corpusDocFrequencyByTerm = 0;
+    for(int i=0; i< PostingList.size()-1;){
+      corpusDocFrequencyByTerm++;
+      i += PostingList.get(i+1) + 2;
+    }
+    return corpusDocFrequencyByTerm;
+  }
+
+  @Override
+  public int corpusTermFrequency(String term) {
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    int corpusTermFrequency = 0;
+    for(int i=0; i< PostingList.size()-1;){
+      corpusTermFrequency += PostingList.get(i+1);
+      i += PostingList.get(i+1) + 2;
+    }
+    return corpusTermFrequency;
+  }
+
+  /**
+   * @CS2580: Implement this to work with your RankerFavorite.
+   */
+  @Override
+  public int documentTermFrequency(String term, int docid) {
+    Vector<Integer> PostingList = getPostingListforTerm(term);
+    for(int i=0; i< PostingList.size()-1;){
+      if(docid == PostingList.get(i)){
+        return  PostingList.get(i+1);
+      } else {
+        i += PostingList.get(i+1) + 2;
+      }
+    }
+    return 0;
+  }
+
+  private void loadTermIfNotLoaded(String term) {
+    if (!_postings.containsKey(_dictionary.get(term))) {
+      try {
+        loadIndexOnFlyForTerm(term);
+      } catch (IOException | ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  private void loadIndexOnFlyForTerm(String term) throws IOException, ClassNotFoundException {
+    int termId = _dictionary.get(term);
+    loadMiniIndex(termId/TERM_COUNT_FOR_INDEX_SPLIT);
+  }
+
+  private void loadMiniIndex(int indexNo) throws IOException {
+
+    File idxFolder = new File(_options._indexPrefix);
+    File[] indexFiles= idxFolder.listFiles();
+
+    if(indexNo < indexFiles.length) {
+      String fileName = _options._indexPrefix + "/index-part-" + indexNo + ".tsv";
+
+      try {
+        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+          int termId = Integer.parseInt(line);
+          line = reader.readLine();
+
+          Scanner sc = new Scanner(line);
+
+          Vector<Integer> termPostingList = new Vector<>();
+          while (sc.hasNext()) {
+            termPostingList.add(Integer.parseInt(sc.next()));
+          }
+          _postings.put(termId,termPostingList);
+
+          Vector<Integer> skipPtrs = new Vector<>();
+          int i = 0;
+          while (i < termPostingList.size()) {
+            skipPtrs.add(i);
+            i += termPostingList.get(i+1) + 2;
+          }
+
+          _skipList.put(termId, skipPtrs);
+          sc.close();
+        }
+      }
+      catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }
