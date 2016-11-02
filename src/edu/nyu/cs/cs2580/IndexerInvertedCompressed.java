@@ -1,6 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 
 import edu.nyu.cs.cs2580.SearchEngine.Options;
@@ -15,6 +16,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   private static int TERM_COUNT_FOR_INDEX_SPLIT = 500;
 
   private int indexCount = 0;
+  private int partCount = 0;
 
   // Maps each term to their integer representation
   private Map<String, Integer> _dictionary = new HashMap<String, Integer>();
@@ -61,6 +63,88 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     _postings = null;
 
     writeIndexerObjectToFile();
+
+    compressMergedFiles(indexDir);
+
+  }
+
+  private List<String> stringTokenizer(String str) {
+    List<String> tokenList = new ArrayList<String>();
+    try {
+      StringTokenizer st = new StringTokenizer(str, "\t");
+      while (st.hasMoreElements()) {
+        tokenList.add(st.nextElement().toString());
+      }
+    }catch (Exception e) {
+      //IT is null
+    }
+    return tokenList;
+  }
+
+  public void compressMergedFiles(String dir) throws IOException {
+
+    for (int part = 0; part <= partCount; part++) {
+      File file = new File(dir + "/index-part-" + part + ".tsv");
+      if (file.isFile() && !file.isHidden() && !file.getName().toLowerCase().contains("object.idx")) {
+        OutputStream os = new FileOutputStream(dir + "/index-comp-part-"+ part +".tsv", true);
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+          String line;
+          while ((line = br.readLine()) != null) {
+
+            Vector<Byte> bytes1 = IndexCompressor.vByteEncoder(Integer.parseInt(line));
+
+            byte[] bArr1 = new byte[bytes1.size()];
+
+            for (int i = 0 ; i < bArr1.length; i++) {
+              bArr1[i] = bytes1.get(i);
+            }
+
+            os.write(bArr1);
+
+            line = br.readLine();
+            List<String> strings = stringTokenizer(line);
+
+            Vector<Byte> bytes2 = IndexCompressor.vByteEncoder(strings.size());
+
+            byte[] bArr2 = new byte[bytes2.size()];
+
+            for (int i = 0 ; i < bArr2.length; i++) {
+              bArr2[i] = bytes2.get(i);
+            }
+
+            os.write(bArr2);
+
+            Vector<Integer> post = new Vector<>();
+
+            for (String word : strings) {
+              int scn = Integer.parseInt(word);
+              post.add(scn);
+            }
+
+            Vector<Byte> bytes3 = IndexCompressor.vByteEncoder(post);
+
+            byte[] bArr3 = new byte[bytes3.size()];
+
+            for (int i = 0 ; i < bArr3.length; i++) {
+              bArr3[i] = bytes3.get(i);
+            }
+
+            os.write(bArr3);
+          }
+        } catch (FileNotFoundException e) {
+          e.printStackTrace();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+
+        os.close();
+      } else if (file.isDirectory()) {
+        //not recursively going inside a directory
+        continue;
+        //processFiles(dir+file.getName());
+      }
+      file.delete();
+    }
 
   }
 
@@ -126,7 +210,6 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     BufferedWriter writer = new BufferedWriter(new FileWriter(partFile, true));
 
     int count = -1;
-    int partCount = 0;
     String line;
     while((line = reader.readLine()) != null) {
       count++;
@@ -318,6 +401,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     this._dictionary = loaded._dictionary;
     this._terms = loaded._terms;
     this._documents = loaded._documents;
+    this.partCount = loaded.partCount;
 
     // Compute numDocs and totalTermFrequency b/c Indexer is not serializable.
     this._numDocs = _documents.size();
@@ -554,40 +638,48 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   private void loadMiniIndex(int indexNo) throws IOException {
 
     File idxFolder = new File(_options._indexPrefix);
-    File[] indexFiles= idxFolder.listFiles();
+    File[] indexFiles = idxFolder.listFiles();
 
-    if(indexNo < indexFiles.length) {
-      String fileName = _options._indexPrefix + "/index-part-" + indexNo + ".tsv";
+    if (indexNo < indexFiles.length) {
+      String fileName = _options._indexPrefix + "/index-comp-part-" + indexNo + ".tsv";
 
-      try {
-        BufferedReader reader = new BufferedReader(new FileReader(fileName));
+      byte[] bytes = Files.readAllBytes(new File(fileName).toPath());
 
-        String line;
-        while ((line = reader.readLine()) != null) {
-          int termId = Integer.parseInt(line);
-          line = reader.readLine();
 
-          Scanner sc = new Scanner(line);
-
-          Vector<Integer> termPostingList = new Vector<>();
-          while (sc.hasNext()) {
-            termPostingList.add(Integer.parseInt(sc.next()));
-          }
-          _postings.put(termId,termPostingList);
-
-          Vector<Integer> skipPtrs = new Vector<>();
-          int i = 0;
-          while (i < termPostingList.size()) {
-            skipPtrs.add(i);
-            i += termPostingList.get(i+1) + 2;
-          }
-
-          _skipList.put(termId, skipPtrs);
-          sc.close();
-        }
+      Vector<Byte> vb = new Vector<>();
+      for (byte b : bytes) {
+        vb.add(b);
       }
-      catch (IOException e) {
-        e.printStackTrace();
+
+      Vector<Integer> numbers = IndexCompressor.vByteDecoder(vb);
+
+
+      int i = 0;
+
+      while (i < numbers.size()) {
+        int termId = numbers.get(i);
+
+        int postingSize = numbers.get(i+1);
+
+        Vector<Integer> termPostingList = new Vector<>();
+
+        int j;
+        for (j = i+2; j < i+2+postingSize; j++) {
+          termPostingList.add(numbers.get(j));
+        }
+
+        _postings.put(termId, termPostingList);
+
+        Vector<Integer> skipPtrs = new Vector<>();
+        int k = 0;
+        while (k < termPostingList.size()) {
+          skipPtrs.add(k);
+          k += termPostingList.get(k + 1) + 2;
+        }
+
+        _skipList.put(termId, skipPtrs);
+
+        i=j;
       }
     }
   }

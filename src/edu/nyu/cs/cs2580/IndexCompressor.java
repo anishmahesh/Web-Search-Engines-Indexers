@@ -1,6 +1,8 @@
 package edu.nyu.cs.cs2580;
 
+import java.io.*;
 import java.lang.Byte;
+import java.util.Scanner;
 import java.util.Vector;
 
 /**
@@ -60,9 +62,7 @@ public class IndexCompressor {
         return numbers;
     }
 
-
-
-    public static void main(String args[]){
+    public static void main(String args[]) throws IOException {
         Vector<Integer> vecInt = new Vector<Integer>();
         vecInt.add(44);
         vecInt.add(209);
@@ -75,6 +75,35 @@ public class IndexCompressor {
         }
 
         System.out.println(vByteDecoder(b));
+
+
+//        BufferedWriter bf = new BufferedWriter(new FileWriter("data/abc.tsv", true));
+//
+//        for (Byte bt : b) {
+//            bf.write(bt+"\t");
+//        }
+//
+//        bf.close();
+
+        BufferedReader br = new BufferedReader(new FileReader("data/abc.tsv"));
+
+        String s = br.readLine();
+        Scanner scanner = new Scanner(s);
+
+        Vector<Byte> vb = new Vector<>();
+        while (scanner.hasNext()) {
+            String next = scanner.next();
+            vb.add(Byte.parseByte(next));
+        }
+
+
+
+
+
+        System.out.println(vByteDecoder(vb));
+
+        br.close();
+
     }
 
 }

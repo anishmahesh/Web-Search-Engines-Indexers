@@ -20,9 +20,8 @@ public class HTMLParse {
 
         org.jsoup.nodes.Document doc = Jsoup.parse(fileName, "UTF-8", "https://en.wikipedia.org/wiki/Courant_Institute_of_Mathematical_Sciences");
         Element body = doc.body();
-        doc.title().replaceFirst("- Wikipedia, the free encyclopedia","");
         _bodyText = new String(body.text().toLowerCase());
-        _title = doc.title();
+        _title = doc.title().replaceFirst("- Wikipedia, the free encyclopedia","");
         _bodyText = TextProcessor.regexRemoval(_bodyText);
 
         HTMLDocument _htmlDocument = new HTMLDocument(_bodyText.toString(),_title.toString(),fileName.getAbsolutePath());
