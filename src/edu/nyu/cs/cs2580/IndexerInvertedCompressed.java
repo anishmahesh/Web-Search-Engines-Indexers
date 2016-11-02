@@ -170,30 +170,35 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     int fileNum = 0;
     for (File file : fileNames) {
 
-      if(file.isFile() && !file.isHidden()) {
-        HTMLDocument htmlDocument = htmlParse.getDocument(file);
-        DocumentIndexed doc = new DocumentIndexed(_documents.size());
+      try {
 
-        processDocument(htmlDocument.getBodyText(), doc);
+        if (file.isFile() && !file.isHidden()) {
+          HTMLDocument htmlDocument = htmlParse.getDocument(file);
+          DocumentIndexed doc = new DocumentIndexed(_documents.size());
 
-        doc.setTitle(htmlDocument.getTitle());
-        doc.setUrl(htmlDocument.getUrl());
-        _documents.add(doc);
-        ++_numDocs;
+          processDocument(htmlDocument.getBodyText(), doc);
 
-        if (fileNum == FILE_COUNT_FOR_INDEX_SPLIT) {
-          indexCount++;
-          System.out.println("Constructing partial index number: " + indexCount);
+          doc.setTitle(htmlDocument.getTitle());
+          doc.setUrl(htmlDocument.getUrl());
+          _documents.add(doc);
+          ++_numDocs;
 
-          persistToFile(indexCount);
-          fileNum = 0;
+          if (fileNum == FILE_COUNT_FOR_INDEX_SPLIT) {
+            indexCount++;
+            System.out.println("Constructing partial index number: " + indexCount);
+
+            persistToFile(indexCount);
+            fileNum = 0;
+          }
+
+          fileNum++;
+        } else if (file.isDirectory()) {
+          //not recursively going inside a directory
+          continue;
+          //processFiles(dir+file.getName());
         }
+      } catch (Exception e) {
 
-        fileNum++;
-      }else if(file.isDirectory()){
-        //not recursively going inside a directory
-        continue;
-        //processFiles(dir+file.getName());
       }
     }
 
