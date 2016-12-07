@@ -412,7 +412,7 @@ public class IndexerInvertedDoconly extends Indexer implements Serializable {
           int termId = Integer.parseInt(line);
           line = reader.readLine();
 
-          Scanner sc = new Scanner(line).useDelimiter("\t");
+          Scanner sc = new Scanner(line);
 
           Vector<Integer> termPostingList = new Vector<>();
           while (sc.hasNext()) {

@@ -568,7 +568,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       return -1;
     }
     if(PostingList.get(0)>current){
-      return PostingList.get(0);
+      return 0;
     }
     return binarySearch(PostingList,SkipList,0,lt,current);
   }
